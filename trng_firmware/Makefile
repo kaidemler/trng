@@ -13,7 +13,7 @@ DUDEFLAGS = -P /dev/ttyUSB0 -p attiny2313 -c avrisp -b 19200 -v
 OBJECTS = usbdrv/usbdrv.o usbdrv/oddebug.o usbdrv/usbdrvasm.o main.o
 
 # Command-line client
-CMDLINE = usbtest
+CMDLINE = trng_client
 
 # By default, build the firmware and command-line client, but do not flash
 all: main.hex $(CMDLINE)
@@ -24,7 +24,7 @@ flash: main.hex
 
 # One-liner to compile the command-line client from usbtest.c
 $(CMDLINE): usbtest.c
-	gcc -I ./libusb/include -L ./libusb/lib/gcc -O -Wall usbtest.c -o usbtest -lusb
+	gcc -I ./libusb/include -L ./libusb/lib/gcc -O -Wall trng_client.c -o usbtest -lusb
 
 # Housekeeping if you want it
 clean:
