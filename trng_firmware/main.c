@@ -7,10 +7,14 @@
 #define F_CPU 12000000L
 #define USB_LED_OFF 0
 #define USB_LED_ON  1
-#define USB_DATA_OUT 2
+#define USB_DATA_TEST 2
+#define USB_DATA_OUT 3
 #include <util/delay.h>
 
-static uint8_t replyBuf[10] = {'F', 'U', 'C', 'K', ' ', 'Y', 'O', 'U', '!', '\0'};
+static uint8_t testReplyBuf[10] = {'F', 'U', 'C', 'K', ' ', 'Y', 'O', 'U', '!', '\0'};
+static uint8_t replyBuf[32];
+
+int samplebits();
 
 // this gets called when custom control message is received
 USB_PUBLIC uchar usbFunctionSetup(uchar data[8]) {
@@ -18,13 +22,16 @@ USB_PUBLIC uchar usbFunctionSetup(uchar data[8]) {
         
     switch(rq->bRequest) { // custom command is in the bRequest field
     case USB_LED_ON:
-        PORTB |= 1; // turn LED on
+        PORTD ^= (1 << PD5); // turn LED on
         return 0;
     case USB_LED_OFF: 
-        PORTB &= ~1; // turn LED off
+        PORTD ^= (1 << PD5); // turn LED off
         return 0;
+    case USB_DATA_TEST:
+        usbMsgPtr = testReplyBuf;
+        return sizeof(testReplyBuf);
     case USB_DATA_OUT:
-        //sampleBits();
+        sampleBits();
         usbMsgPtr = replyBuf;
         return sizeof(replyBuf);
     }
@@ -80,9 +87,10 @@ int sampleBits(){
 
 int main() {
     uchar i;
-    DDRB = 1; // PB0 as output
+    DDRD |= (1 << PD5);; // PD5 as output
+    PORTB = 0;
     for(i=0; i < 6; i++){
-        PORTB ^= 1;
+        PORTD ^= (1 << PD5);
         _delay_ms(500);
     }
 
@@ -96,18 +104,11 @@ int main() {
         _delay_ms(2);
     }
     usbDeviceConnect();
-
-    for(i=0; i < 4; i++){
-        PORTB ^= 1;
-        _delay_ms(1000);
-    }
         
     sei(); // Enable interrupts after re-enumeration
         
     while(1) {
         wdt_reset(); // keep the watchdog happy
-        PORTB ^= 1;
-        _delay_ms(3000);
         usbPoll();
     }
         
