@@ -23,8 +23,8 @@ flash: main.hex
 	$(DUDE) $(DUDEFLAGS) -U flash:w:$<
 
 # One-liner to compile the command-line client from usbtest.c
-$(CMDLINE): usbtest.c
-	gcc -I ./libusb/include -L ./libusb/lib/gcc -O -Wall trng_client.c -o usbtest -lusb
+$(CMDLINE): trng_client.c
+	gcc -I ./libusb/include -L ./libusb/lib/gcc -O -Wall trng_client.c -o trng_client -lusb
 
 # Housekeeping if you want it
 clean:
