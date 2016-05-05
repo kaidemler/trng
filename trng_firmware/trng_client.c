@@ -172,8 +172,8 @@ int main(int argc, char **argv) {
 		{ 
 			while(b >= 0)
 			{
-				if(b >= 32) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_TEST, 0, 0, (char *)buffer, sizeof(buffer), 5000);
-				else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_TEST, 0, 0, (char *)buffer, b, 5000);
+				if(b >= 32) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_OUT, 0, 0, (char *)buffer, sizeof(buffer), 50000);
+				else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_OUT, 0, 0, (char *)buffer, b, 50000);
 				fwrite(buffer, nBytes, sizeof(char), stdout);
 				fflush(stdout);
 				b = b-32;

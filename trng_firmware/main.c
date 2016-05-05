@@ -52,11 +52,11 @@ int sampleBits(){
     uint8_t dataByte = 0;
 
     while(numBytes < 32){
-
+        numBits = 0;
         while(numBits < 8){
-    
+            wdt_reset();
             sample0 = (ACSR & (1 << ACO));
-            _delay_ms(50);
+            _delay_ms(0.1);
     
             sample1 = (ACSR & (1 << ACO));
     
@@ -73,7 +73,7 @@ int sampleBits(){
                 numBits += 1;
             }
 
-            _delay_ms(50);
+            _delay_ms(0.1);
         }
 
         // Store the sampled data in the reply buffer and reset
@@ -88,7 +88,6 @@ int sampleBits(){
 int main() {
     uchar i;
     DDRD |= (1 << PD5);; // PD5 as output
-    PORTB = 0;
     for(i=0; i < 6; i++){
         PORTD ^= (1 << PD5);
         _delay_ms(500);
