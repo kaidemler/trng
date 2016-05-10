@@ -15,10 +15,8 @@
 // same as in main.c
 #define USB_LED_OFF 0
 #define USB_LED_ON  1
-#define USB_DATA_TEST 2
-#define USB_DATA_OUT 3
-#define USB_DATA_IN 4
-#define USB_DATA_COM 5
+#define USB_DATA_PULL 2
+#define REPLYSIZE 64
 
 
 // used to get descriptor strings for device identification 
@@ -118,16 +116,15 @@ static usb_dev_handle * usbOpenDevice(int vendor, char *vendorName,
 
 int main(int argc, char **argv) {
 	usb_dev_handle *handle = NULL;
-    int nBytes = 0;
-    char buffer[256];
+    int nBytes = 0;					// number of bytes pulled
+    char buffer[REPLYSIZE];			// device reply data
 
 	if(argc < 2) {
 		printf("Usage:\n");
-		printf("usbtext.exe on\n");
-		printf("usbtext.exe off\n");
-		printf("usbtext.exe out\n");
-		printf("usbtext.exe write\n");
-		printf("usbtext.exe in <string>\n");
+		printf("trng_client <command> <option>\n");
+		printf("on - Turn onboard LED on\n");
+		printf("off - Turn onboard LED off\n");
+		printf("pull <numBytes> - Pull numBytes of random bits from board\n");
 		exit(1);
 	}
 	
@@ -138,49 +135,44 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	// turn LED on
 	if(strcmp(argv[1], "on") == 0) {
 		nBytes = usb_control_msg(handle, 
             USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, 
 			USB_LED_ON, 0, 0, (char *)buffer, sizeof(buffer), 5000);
-	} else if(strcmp(argv[1], "off") == 0) {
-		nBytes = usb_control_msg(handle, 
-            USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, 
-			USB_LED_OFF, 0, 0, (char *)buffer, sizeof(buffer), 5000);
-	} else if(strcmp(argv[1], "test") == 0) {
-		nBytes = usb_control_msg(handle, 
-            USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, 
-			USB_DATA_TEST, 0, 0, (char *)buffer, sizeof(buffer), 50000);
-       // printf("Got %d bytes: %s\n", nBytes, buffer);
-	fwrite(buffer, nBytes, sizeof(char), stdout);
-	fflush(stdout);
-	} else if(strcmp(argv[1], "out") == 0) {
-		nBytes = usb_control_msg(handle, 
-            USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, 
-			USB_DATA_OUT, 'T' + ('E' << 8), 'S' + ('T' << 8), 
-            (char *)buffer, sizeof(buffer), 5000);
-	} else if(strcmp(argv[1], "in") == 0 && argc > 2) {
-		nBytes = usb_control_msg(handle, 
-            USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_OUT, 
-			USB_DATA_IN, 0, 0, argv[2], strlen(argv[2])+1, 5000);
 	}
-	
-	else if(strcmp(argv[1], "com") == 0 && argc > 2) {
-		int b = atoi(argv[2]);
-		int r = b;
-		if(b<=0) nBytes = 0;
-		else
-		{ 
-			while(b >= 0)
-			{
-				if(b >= 32) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_OUT, 0, 0, (char *)buffer, sizeof(buffer), 50000);
-				else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_OUT, 0, 0, (char *)buffer, b, 50000);
-				fwrite(buffer, nBytes, sizeof(char), stdout);
-				fflush(stdout);
-				b = b-32;
+
+	// turn LED off
+	else if(strcmp(argv[1], "off") == 0) {
+		nBytes = usb_control_msg(handle, 
+            USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, 
+			USB_LED_OFF, 0, 0, (char *)buffer, sizeof(buffer), 5000);	
+	} 
+
+	// get data
+	else if(strcmp(argv[1], "pull") == 0 && argc > 2) {
+		int b = atoi(argv[2]);		// number user wants
+		while(b >= 0)
+		{
+			// pull
+			if(b >= REPLYSIZE) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, REPLYSIZE, 5000);
+			else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, b, 5000);
+			
+			// error check
+			if(nBytes < 0){
+				break;
 			}
-			nBytes = r;
+
+			// write to the screen for piping
+			fwrite(buffer, nBytes, sizeof(char), stdout);
+			fflush(stdout);
+
+			// decrement
+			b -= REPLYSIZE;
 		}
 	}
+
+	// alert error
 	if(nBytes < 0)
 		fprintf(stderr, "USB error: %s\n", usb_strerror());
 		

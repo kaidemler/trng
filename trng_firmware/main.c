@@ -7,37 +7,11 @@
 #define F_CPU 12000000L
 #define USB_LED_OFF 0
 #define USB_LED_ON  1
-#define USB_DATA_TEST 2
-#define USB_DATA_OUT 3
+#define USB_DATA_PULL 2
+#define REPLYSIZE 64
 #include <util/delay.h>
 
-static uint8_t testReplyBuf[10] = {'F', 'U', 'C', 'K', ' ', 'Y', 'O', 'U', '!', '\0'};
-static uint8_t replyBuf[32];
-
-int samplebits();
-
-// this gets called when custom control message is received
-USB_PUBLIC uchar usbFunctionSetup(uchar data[8]) {
-    usbRequest_t *rq = (void *)data; // cast data to correct type
-        
-    switch(rq->bRequest) { // custom command is in the bRequest field
-    case USB_LED_ON:
-        PORTD ^= (1 << PD5); // turn LED on
-        return 0;
-    case USB_LED_OFF: 
-        PORTD ^= (1 << PD5); // turn LED off
-        return 0;
-    case USB_DATA_TEST:
-        usbMsgPtr = testReplyBuf;
-        return sizeof(testReplyBuf);
-    case USB_DATA_OUT:
-        sampleBits();
-        usbMsgPtr = replyBuf;
-        return sizeof(replyBuf);
-    }
-
-    return 0; // should not get here
-}
+static uint8_t replyBuf[REPLYSIZE];
 
 int sampleBits(){
     // Keep track of number of bits and bytes done
@@ -51,46 +25,69 @@ int sampleBits(){
     // Data
     uint8_t dataByte = 0;
 
-    while(numBytes < 32){
+    while(numBytes < REPLYSIZE){
         numBits = 0;
+
+        // acquire a bit
         while(numBits < 8){
             wdt_reset();
+
             sample0 = (ACSR & (1 << ACO));
-            _delay_ms(0.1);
-    
+            _delay_ms(0.0001);
             sample1 = (ACSR & (1 << ACO));
     
             // Von Neumann debias the samples
             // 0->1 is a 1
             if(sample0 < sample1){
                 dataByte = (dataByte << 1) | 1;
-                numBits += 1;
+                numBits++;
             }
 
             // 1-> 0 is a 0
             else if(sample0 > sample1){
                 dataByte = (dataByte << 1);
-                numBits += 1;
+                numBits++;
             }
 
-            _delay_ms(0.1);
+            _delay_ms(0.0001);
         }
 
         // Store the sampled data in the reply buffer and reset
         replyBuf[numBytes] = dataByte;
         dataByte = 0;
-        numBytes += 1;
+        numBytes++;
     }
 
     return 0;
 }
 
+// this gets called when custom control message is received
+USB_PUBLIC uchar usbFunctionSetup(uchar data[8]) {
+    usbRequest_t *rq = (void *)data; // cast data to correct type
+        
+    switch(rq->bRequest) { // custom command is in the bRequest field
+    case USB_LED_ON:
+        PORTD ^= (1 << PD5); // turn LED on
+        return 0;
+    case USB_LED_OFF: 
+        PORTD ^= (1 << PD5); // turn LED off
+        return 0;
+    case USB_DATA_PULL:      // sample data and return
+        sampleBits();
+        usbMsgPtr = replyBuf;
+        return sizeof(replyBuf);
+    }
+
+    return 0; // should not get here
+}
+
 int main() {
     uchar i;
     DDRD |= (1 << PD5);; // PD5 as output
+    _delay_ms(400);
     for(i=0; i < 6; i++){
         PORTD ^= (1 << PD5);
-        _delay_ms(500);
+        _delay_ms(80);
     }
 
     wdt_enable(WDTO_1S); // enable 1s watchdog timer
