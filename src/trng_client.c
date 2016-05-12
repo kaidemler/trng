@@ -16,7 +16,7 @@
 #define USB_LED_OFF 0
 #define USB_LED_ON  1
 #define USB_DATA_PULL 2
-#define REPLYSIZE 64
+#define REPLYSIZE 48
 
 
 // used to get descriptor strings for device identification 
@@ -155,8 +155,8 @@ int main(int argc, char **argv) {
 		while(b >= 0)
 		{
 			// pull
-			if(b >= REPLYSIZE) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, REPLYSIZE, 5000);
-			else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, b, 5000);
+			if(b >= REPLYSIZE) nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, REPLYSIZE, 10000);
+			else nBytes = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, USB_DATA_PULL, 0, 0, (char *)buffer, b, 10000);
 			
 			// error check
 			if(nBytes < 0){

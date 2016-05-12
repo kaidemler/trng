@@ -8,7 +8,7 @@
 #define USB_LED_OFF 0
 #define USB_LED_ON  1
 #define USB_DATA_PULL 2
-#define REPLYSIZE 64
+#define REPLYSIZE 48
 #include <util/delay.h>
 
 static uint8_t replyBuf[REPLYSIZE];
@@ -33,7 +33,7 @@ int sampleBits(){
             wdt_reset();
 
             sample0 = (ACSR & (1 << ACO));
-            _delay_ms(0.0001);
+            _delay_ms(0.0005);
             sample1 = (ACSR & (1 << ACO));
     
             // Von Neumann debias the samples
@@ -49,7 +49,7 @@ int sampleBits(){
                 numBits++;
             }
 
-            _delay_ms(0.0001);
+            _delay_ms(0.0005);
         }
 
         // Store the sampled data in the reply buffer and reset
